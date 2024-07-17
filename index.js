@@ -1,40 +1,36 @@
 const express = require("express");
 const multer = require("multer");
 const PcapParser = require("pcap-parser");
-const fs = require("fs");
 const cors = require("cors");
 const xlsx = require("xlsx");
+const stream = require("stream");
 
 const app = express();
-const port = 3001;
+const port = process.env.PORT || 3001;
 
 app.use(cors());
 
-// Set up storage engine for multer
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "uploads/");
-  },
-  filename: (req, file, cb) => {
-    cb(null, file.originalname);
-  },
+// Multer storage configuration
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 50 * 1024 * 1024 }, // Limit file size to 10MB for example
 });
-
-const upload = multer({ storage: storage });
-
-// Ensure the uploads directory exists
-if (!fs.existsSync("uploads")) {
-  fs.mkdirSync("uploads");
-}
 
 let parsedData = [];
 let packetDetails = [];
 
 app.post("/upload", upload.single("pcapFile"), (req, res) => {
-  const filePath = req.file.path;
+  if (!req.file) {
+    return res.status(400).send("No file uploaded.");
+  }
+
+  // Convert the file buffer to a stream
+  const bufferStream = new stream.PassThrough();
+  bufferStream.end(req.file.buffer);
+  const parser = PcapParser.parse(bufferStream);
+
   parsedData = [];
   packetDetails = [];
-  const parser = PcapParser.parse(filePath);
   let numberOfNetflixPackets = 0;
   let numberOfYouTubePackets = 0;
   let numberOfIpPackets = 0;
@@ -97,12 +93,28 @@ app.post("/upload", upload.single("pcapFile"), (req, res) => {
 
             if (
               serverName &&
-              !serverName.includes("google")(
-                serverName.includes("netflix") ||
-                  serverName.includes("youtube") ||
-                  serverName.includes("yt") ||
-                  serverName.includes("nflx")
-              )
+              (serverName.includes("netflix") ||
+                serverName.includes("nflx") ||
+                serverName.includes("nflxvideo") ||
+                serverName.includes("nflximg") ||
+                serverName.includes("nflxext") ||
+                serverName.includes("nflxso") ||
+                serverName.includes("nflximg.net") ||
+                serverName.includes("nflxext.com") ||
+                serverName.includes("nflxvideo.net") ||
+                serverName.includes("nflxso.net") ||
+                serverName.includes("nflximg.com") ||
+                serverName.includes("nflxext.net") ||
+                serverName.includes("youtube") ||
+                serverName.includes("yt") ||
+                serverName.includes("ytimg") ||
+                serverName.includes("yt3") ||
+                serverName.includes("youtu.be") ||
+                serverName.includes("googlevideo") ||
+                serverName.includes("youtube-nocookie.com") ||
+                serverName.includes("ytstatic") ||
+                serverName.includes("ytimg") ||
+                serverName.includes("ytimg.l.google.com"))
             ) {
               const packetInfo = {
                 Time: timestamp.toLocaleTimeString(),
@@ -117,12 +129,30 @@ app.post("/upload", upload.single("pcapFile"), (req, res) => {
 
               if (
                 serverName.includes("netflix") ||
-                serverName.includes("nflx")
+                serverName.includes("nflx") ||
+                serverName.includes("nflxvideo") ||
+                serverName.includes("nflximg") ||
+                serverName.includes("nflxext") ||
+                serverName.includes("nflxso") ||
+                serverName.includes("nflximg.net") ||
+                serverName.includes("nflxext.com") ||
+                serverName.includes("nflxvideo.net") ||
+                serverName.includes("nflxso.net") ||
+                serverName.includes("nflximg.com") ||
+                serverName.includes("nflxext.net")
               ) {
                 numberOfNetflixPackets++;
               } else if (
                 serverName.includes("youtube") ||
-                serverName.includes("yt")
+                serverName.includes("yt") ||
+                serverName.includes("ytimg") ||
+                serverName.includes("yt3") ||
+                serverName.includes("youtu.be") ||
+                serverName.includes("googlevideo") ||
+                serverName.includes("youtube-nocookie.com") ||
+                serverName.includes("ytstatic") ||
+                serverName.includes("ytimg") ||
+                serverName.includes("ytimg.l.google.com")
               ) {
                 numberOfYouTubePackets++;
               }
@@ -144,12 +174,28 @@ app.post("/upload", upload.single("pcapFile"), (req, res) => {
 
         if (
           domainName &&
-          !domainName.includes("google")(
-            domainName.includes("netflix") ||
-              domainName.includes("youtube") ||
-              domainName.includes("yt") ||
-              domainName.includes("nflx")
-          )
+          (domainName.includes("netflix") ||
+            domainName.includes("nflx") ||
+            domainName.includes("nflxvideo") ||
+            domainName.includes("nflximg") ||
+            domainName.includes("nflxext") ||
+            domainName.includes("nflxso") ||
+            domainName.includes("nflximg.net") ||
+            domainName.includes("nflxext.com") ||
+            domainName.includes("nflxvideo.net") ||
+            domainName.includes("nflxso.net") ||
+            domainName.includes("nflximg.com") ||
+            domainName.includes("nflxext.net") ||
+            domainName.includes("youtube") ||
+            domainName.includes("yt") ||
+            domainName.includes("ytimg") ||
+            domainName.includes("yt3") ||
+            domainName.includes("youtu.be") ||
+            domainName.includes("googlevideo") ||
+            domainName.includes("youtube-nocookie.com") ||
+            domainName.includes("ytstatic") ||
+            domainName.includes("ytimg") ||
+            domainName.includes("ytimg.l.google.com"))
         ) {
           const packetInfo = {
             Time: timestamp.toLocaleTimeString(),
@@ -162,11 +208,32 @@ app.post("/upload", upload.single("pcapFile"), (req, res) => {
           };
           packetDetails.push(packetInfo);
 
-          if (domainName.includes("netflix") || domainName.includes("nflx")) {
+          if (
+            domainName.includes("netflix") ||
+            domainName.includes("nflx") ||
+            domainName.includes("nflxvideo") ||
+            domainName.includes("nflximg") ||
+            domainName.includes("nflxext") ||
+            domainName.includes("nflxso") ||
+            domainName.includes("nflximg.net") ||
+            domainName.includes("nflxext.com") ||
+            domainName.includes("nflxvideo.net") ||
+            domainName.includes("nflxso.net") ||
+            domainName.includes("nflximg.com") ||
+            domainName.includes("nflxext.net")
+          ) {
             numberOfNetflixPackets++;
           } else if (
             domainName.includes("youtube") ||
-            domainName.includes("yt")
+            domainName.includes("yt") ||
+            domainName.includes("ytimg") ||
+            domainName.includes("yt3") ||
+            domainName.includes("youtu.be") ||
+            domainName.includes("googlevideo") ||
+            domainName.includes("youtube-nocookie.com") ||
+            domainName.includes("ytstatic") ||
+            domainName.includes("ytimg") ||
+            domainName.includes("ytimg.l.google.com")
           ) {
             numberOfYouTubePackets++;
           }
@@ -204,13 +271,12 @@ app.post("/upload", upload.single("pcapFile"), (req, res) => {
     const wb = xlsx.utils.book_new();
     const ws = xlsx.utils.json_to_sheet(packetDetails);
     xlsx.utils.book_append_sheet(wb, ws, "Packets");
-    const excelFilePath = `uploads/packets_${Date.now()}.xlsx`;
-    xlsx.writeFile(wb, excelFilePath);
+    const excelBuffer = xlsx.write(wb, { type: "buffer", bookType: "xlsx" });
 
     res.json({
       message: "File uploaded and processed successfully.",
       data: parsedData,
-      excelFilePath,
+      excelBuffer: excelBuffer.toString("base64"), // Return base64 encoded buffer
     });
   });
 
@@ -229,7 +295,7 @@ app.get("/", (req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(`Server running at http://localhost:${port}`);
+  console.log(`Server running on port ${port}`);
 });
 
 // Function to extract server name from TLS Client Hello
@@ -279,19 +345,45 @@ function extractServerNameFromClientHello(data) {
 
 // Function to extract domain name from DNS query
 function extractDomainNameFromDNS(data) {
-  let offset = 12; // Skip the DNS header
-  if (data.length < offset + 1) return null; // Validate offset
+  if (data.length < 12) return null; // Minimum length for DNS header
+  const qdCount = data.readUInt16BE(4);
+  if (qdCount < 1) return null; // No questions
+  let offset = 12;
 
-  const domainNameParts = [];
-  while (offset < data.length && data[offset] !== 0) {
-    const labelLength = data[offset];
-    offset += 1;
-    if (offset + labelLength > data.length) return null; // Validate offset
-    const label = data.slice(offset, offset + labelLength).toString();
-    domainNameParts.push(label);
-    offset += labelLength;
+  while (data[offset] !== 0 && offset < data.length) {
+    const length = data[offset];
+    if ((length & 0xc0) === 0xc0) {
+      // Handle pointers
+      offset += 2;
+      break;
+    } else {
+      offset += length + 1;
+    }
+    if (offset >= data.length) return null; // Validate offset
+  }
+  offset++; // Skip the null byte that terminates the name
+
+  if (offset + 4 > data.length) return null; // Minimum length for query
+  const qType = data.readUInt16BE(offset);
+  const qClass = data.readUInt16BE(offset + 2);
+  if (qType !== 1 || qClass !== 1) return null; // Not A record or IN class
+
+  const labels = [];
+  offset = 12; // Reset offset to read the domain name again
+
+  while (data[offset] !== 0 && offset < data.length) {
+    const length = data[offset];
+    if ((length & 0xc0) === 0xc0) {
+      // Handle pointers
+      const pointer = data.readUInt16BE(offset) & 0x3fff; // Get pointer offset
+      if (pointer >= data.length) return null; // Validate pointer
+      offset = pointer;
+    } else {
+      labels.push(data.toString("utf8", offset + 1, offset + 1 + length));
+      offset += length + 1;
+    }
+    if (offset >= data.length) return null; // Validate offset
   }
 
-  if (offset >= data.length) return null; // Validate offset
-  return domainNameParts.join(".");
+  return labels.join(".");
 }
